@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>交工核算 · 报销指引平台 | 员工报销单 & 差旅报销单</title>
+<style>
+  :root{
+    --bg:#05070f;
+    --bg2:#0a1024;
+    --panel:rgba(18,26,48,0.55);
+    --panel-solid:#0e1530;
+    --line:rgba(90,150,255,0.18);
+    --cyan:#22e3ff;
+    --blue:#3b82f6;
+    --violet:#8b5cf6;
+    --green:#34f5c5;
+    --amber:#ffb454;
+    --text:#e8eefc;
+    --muted:#8ba0c8;
+    --radius:18px;
+    --mono:'SFMono-Regular',"JetBrains Mono",Consolas,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1200px 700px at 80% -10%,rgba(59,130,246,0.18),transparent 60%),
+               radial-gradient(900px 600px at 0% 10%,rgba(139,92,246,0.16),transparent 55%),
+               linear-gradient(180deg,var(--bg),var(--bg2));
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+    line-height:1.6;
+  }
+  #bgCanvas{position:fixed;inset:0;z-index:0;opacity:0.5}
+  .wrap{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 22px}
+  /* NAV */
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px);
+    background:linear-gradient(180deg,rgba(5,7,15,0.85),rgba(5,7,15,0.4));
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .logo{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:.5px}
+  .logo .dot{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 200deg,var(--cyan),var(--blue),var(--violet),var(--cyan));box-shadow:0 0 18px rgba(34,227,255,.6);display:grid;place-items:center;font-size:15px}
+  .logo small{display:block;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:1px}
+  .nav-links{display:flex;gap:8px;flex-wrap:wrap}
+  .nav-links a{
+    color:var(--muted);text-decoration:none;font-size:13.5px;padding:8px 14px;border-radius:10px;
+    border:1px solid transparent;transition:.2s;
+  }
+  .nav-links a:hover{color:var(--text);border-color:var(--line);background:rgba(59,130,246,.12)}
+  /* HERO */
+  header.hero{padding:84px 0 54px;text-align:center;position:relative}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--cyan);
+    border:1px solid var(--line);padding:6px 14px;border-radius:999px;background:rgba(34,227,255,.06);
+    font-family:var(--mono);letter-spacing:1px;margin-bottom:22px}
+  .badge .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  h1.title{font-size:clamp(32px,5.5vw,58px);font-weight:800;letter-spacing:-1px;line-height:1.1}
+  h1.title .grad{background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .subtitle{margin:20px auto 0;max-width:680px;color:var(--muted);font-size:16px}
+  .hero-cta{margin-top:34px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{padding:13px 26px;border-radius:12px;font-size:14.5px;font-weight:600;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:.2s;display:inline-flex;align-items:center;gap:8px}
+  .btn.primary{background:linear-gradient(90deg,var(--cyan),var(--blue));color:#04122a;box-shadow:0 8px 30px rgba(34,227,255,.35)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(34,227,255,.5)}
+  .btn.ghost{border-color:var(--line);color:var(--text);background:rgba(255,255,255,.03)}
+  .btn.ghost:hover{border-color:var(--cyan);background:rgba(34,227,255,.08)}
+  .stats{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:46px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 22px;min-width:130px;backdrop-filter:blur(8px)}
+  .stat .num{font-size:30px;font-weight:800;font-family:var(--mono);background:linear-gradient(90deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat .lbl{font-size:12.5px;color:var(--muted);margin-top:2px}
+  /* SECTIONS */
+  section{padding:60px 0;position:relative}
+  .sec-head{margin-bottom:34px}
+  .sec-tag{font-family:var(--mono);font-size:12px;color:var(--cyan);letter-spacing:2px}
+  .sec-title{font-size:clamp(24px,3.4vw,34px);font-weight:800;margin-top:8px}
+  .sec-desc{color:var(--muted);margin-top:10px;max-width:720px;font-size:14.5px}
+  /* TABS */
+  .tabs{display:inline-flex;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:5px;gap:5px;margin-bottom:30px}
+  .tabs button{border:none;background:transparent;color:var(--muted);font-size:14px;font-weight:600;padding:10px 20px;border-radius:10px;cursor:pointer;transition:.2s}
+  .tabs button.active{background:linear-gradient(90deg,var(--cyan),var(--blue));color:#04122a;box-shadow:0 4px 18px rgba(34,227,255,.35)}
+  .sys-pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12.5px;color:var(--green);border:1px solid rgba(52,245,197,.3);background:rgba(52,245,197,.06);padding:5px 12px;border-radius:8px;margin-left:12px;vertical-align:middle}
+  /* STEP TIMELINE */
+  .steps{display:none}
+  .steps.active{display:block;animation:fade .4s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .timeline{position:relative;padding-left:42px}
+  .timeline::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--cyan),var(--violet))}
+  .step{position:relative;margin-bottom:22px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;backdrop-filter:blur(8px);transition:.2s}
+  .step:hover{border-color:rgba(34,227,255,.5);transform:translateX(4px)}
+  .step .node{position:absolute;left:-35px;top:20px;width:30px;height:30px;border-radius:50%;background:var(--bg2);border:2px solid var(--cyan);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:var(--cyan);box-shadow:0 0 14px rgba(34,227,255,.4)}
+  .step h3{font-size:16.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .step p{color:var(--muted);font-size:14px;margin-top:7px}
+  .step .tag{font-family:var(--mono);font-size:11px;color:var(--amber);border:1px solid rgba(255,180,84,.3);background:rgba(255,180,84,.07);padding:2px 8px;border-radius:6px}
+  /* MATERIALS */
+  .mat-layout{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start}
+  .scenario-list{display:flex;flex-direction:column;gap:11px}
+  .scenario{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 17px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+  .scenario:hover{border-color:rgba(34,227,255,.5);transform:translateY(-2px)}
+  .scenario.active{border-color:var(--cyan);background:linear-gradient(135deg,rgba(34,227,255,.12),rgba(139,92,246,.1))}
+  .scenario.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--cyan),var(--violet))}
+  .scenario .form{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+  .scenario .cat{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .scenario .mini{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+  .chip.sys{color:var(--green);border-color:rgba(52,245,197,.3)}
+  .mat-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;backdrop-filter:blur(8px);min-height:420px}
+  .mat-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--line)}
+  .mat-top h3{font-size:20px}
+  .mat-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px}
+  .mat-meta div{font-size:12.5px;color:var(--muted)}
+  .mat-meta b{color:var(--text);font-weight:600;display:block;font-size:13.5px}
+  .search{position:relative;margin-bottom:16px}
+  .search input{width:100%;background:rgba(5,7,15,.6);border:1px solid var(--line);border-radius:11px;padding:12px 14px 12px 40px;color:var(--text);font-size:14px;outline:none;transition:.2s}
+  .search input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,227,255,.12)}
+  .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.5}
+  .mat-grid{display:flex;flex-direction:column;gap:10px}
+  .mat-item{display:flex;gap:14px;align-items:flex-start;background:rgba(5,7,15,.4);border:1px solid var(--line);border-radius:12px;padding:13px 15px;transition:.2s}
+  .mat-item:hover{border-color:rgba(34,227,255,.45)}
+  .mat-seq{flex:none;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04122a;font-family:var(--mono);font-weight:800;display:grid;place-items:center;font-size:14px}
+  .mat-body{flex:1}
+  .mat-name{font-weight:600;font-size:14.5px}
+  .mat-req{color:var(--muted);font-size:13px;margin-top:4px}
+  .mat-req .cond{color:var(--amber)}
+  .empty{text-align:center;color:var(--muted);padding:50px 0;font-size:14px}
+  .count-note{font-size:12px;color:var(--muted);margin-top:14px;font-family:var(--mono)}
+  /* CALCULATOR */
+  .calc-box{display:block;animation:fade .35s ease}
+  .calc-hint{font-size:13px;color:var(--muted);background:rgba(34,227,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+  .calc-hint b{color:var(--cyan)}
+  .qblock{background:rgba(5,7,15,.4);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+  .qblock.either{border-color:rgba(255,180,84,.4);background:rgba(255,180,84,.05)}
+  .qtitle{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .etag{font-family:var(--mono);font-size:10.5px;color:var(--amber);border:1px solid rgba(255,180,84,.4);padding:2px 8px;border-radius:6px}
+  .opts{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px}
+  .opt{background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--text);font-size:13px;padding:9px 15px;border-radius:10px;cursor:pointer;transition:.18s}
+  .opt:hover{border-color:var(--cyan)}
+  .opt.on{background:linear-gradient(90deg,var(--cyan),var(--blue));color:#04122a;border-color:transparent;font-weight:600;box-shadow:0 4px 16px rgba(34,227,255,.3)}
+  .calc-result{margin-top:18px;border-top:1px dashed var(--line);padding-top:18px}
+  .res-head{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--green)}
+  .res-note{font-size:12.5px;color:var(--amber);margin-top:12px;font-family:var(--mono)}
+  /* SYSTEM SECTION */
+  .sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .sys-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;backdrop-filter:blur(8px);position:relative;overflow:hidden}
+  .sys-card::after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(34,227,255,.18),transparent 70%)}
+  .sys-card h3{font-size:19px;display:flex;align-items:center;gap:10px}
+  .sys-card .sysname{font-family:var(--mono);color:var(--green);font-size:13px;margin-top:6px}
+  .sys-card ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:11px}
+  .sys-card li{font-size:13.5px;color:var(--muted);padding-left:22px;position:relative}
+  .sys-card li::before{content:"▹";position:absolute;left:0;color:var(--cyan)}
+  .sys-card li b{color:var(--text)}
+  .note{margin-top:18px;font-size:12.5px;color:var(--muted);border-left:3px solid var(--amber);padding:10px 14px;background:rgba(255,180,84,.06);border-radius:0 10px 10px 0}
+  /* FOOTER */
+  footer{border-top:1px solid var(--line);padding:34px 0 50px;text-align:center;color:var(--muted);font-size:12.5px}
+  footer a{color:var(--cyan);text-decoration:none}
+  .glow-divider{height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.4;margin:10px 0}
+  @media(max-width:860px){
+    .mat-layout{grid-template-columns:1fr}
+    .sys-grid{grid-template-columns:1fr}
+    .nav-links{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="logo">
+      <span class="dot">⬡</span>
+      <div>交工核算 · 报销指引<small>REIMBURSEMENT GUIDE · 检测篇</small></div>
+    </div>
+    <div class="nav-links">
+      <a href="#steps">提交步骤</a>
+      <a href="#materials">材料速查</a>
+      <a href="#systems">系统入口</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <span class="badge"><span class="pulse"></span>依据《交工财务共享核算全景图（检测篇）》· 2025.12</span>
+  <h1 class="title">员工报销单 &amp; 差旅报销单<br><span class="grad">一站式智能报销指引</span></h1>
+  <p class="subtitle">聚焦公司报销标准，清晰呈现「提交步骤」与「所需材料」。按场景秒查附件清单，让每一笔报销都规范、高效、一次通过。</p>
+  <div class="hero-cta">
+    <a href="#steps" class="btn primary">查看提交步骤 →</a>
+    <a href="#materials" class="btn ghost">速查报销材料</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="num" data-to="2">0</div><div class="lbl">核心报销单类型</div></div>
+    <div class="stat"><div class="num" data-to="5">0</div><div class="lbl">常见报销场景</div></div>
+    <div class="stat"><div class="num" data-to="12">0</div><div class="lbl">差旅附件情形</div></div>
+    <div class="stat"><div class="num" data-to="2">0</div><div class="lbl">业务系统入口</div></div>
+  </div>
+</header>
+
+<!-- STEPS -->
+<section id="steps" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">// STEP 01 — 提交流程</div>
+    <div class="sec-title">报销单提交具体步骤</div>
+    <div class="sec-desc">先选单据类型，再按步骤操作。两类单据的来源系统不同，请务必在正确的系统发起。</div>
+  </div>
+
+  <div class="tabs">
+    <button id="tab-emp" class="active" onclick="switchTab('emp')">员工报销单</button>
+    <button id="tab-tra" onclick="switchTab('tra')">差旅报销单</button>
+  </div>
+
+  <!-- 员工报销单 steps -->
+  <div id="steps-emp" class="steps active">
+    <div class="sys-pill">● 来源系统：交工业务系统</div>
+    <div class="timeline" style="margin-top:24px">
+      <div class="step"><div class="node">1</div><h3>确认适用范围 <span class="tag">判定</span></h3><p>判断费用是否属于「员工报销单」适用情形，如零星小额材料采购、市内交通费、差旅相关费用、设备检测/标定费等，并选定对应<b>费用项目</b>。</p></div>
+      <div class="step"><div class="node">2</div><h3>登录交工业务系统 <span class="tag">入口</span></h3><p>进入报销模块，新建「员工报销单」。员工报销单统一在<b>交工业务系统</b>发起（单据类型归属员工报销单时）。</p></div>
+      <div class="step"><div class="node">3</div><h3>填写单据字段 <span class="tag">填报</span></h3><p>选择成本用途与单据业务类型（如"直接归集检测成本 → 设计（检测）成本"），填写<b>费用承担部门</b>、<b>内部管理单元</b>等特定字段。</p></div>
+      <div class="step"><div class="node">4</div><h3>关联合同（如适用）</h3><p>非即时结清（一次性结清）的简单小额（5万元以内）经济往来业务需关联合同，按具体业务判断。</p></div>
+      <div class="step"><div class="node">5</div><h3>上传发票与附件 <span class="tag">材料</span></h3><p>按费用类型准备材料，确保<b>发票金额、附件金额、单据金额三相符</b>。材料清单见下方「材料速查」。</p></div>
+      <div class="step"><div class="node">6</div><h3>公务卡说明 <span class="tag">必办</span></h3><p>公务卡支付：上传《公务卡消费流水截图（含卡号末四位数）》；非公务卡支付：上传《未使用公务卡说明》（标准格式、签字齐全）。</p></div>
+      <div class="step"><div class="node">7</div><h3>提交与财务审核 <span class="tag">完成</span></h3><p>提交后进入审批流转。财务审核节点<b>自动带出凭证摘要</b>（如"境内差旅费"），可手工修改；审核通过后由银行存款支付。</p></div>
+    </div>
+  </div>
+
+  <!-- 差旅报销单 steps -->
+  <div id="steps-tra" class="steps">
+    <div class="sys-pill">● 来源系统：财务共享系统</div>
+    <div class="timeline" style="margin-top:24px">
+      <div class="step"><div class="node">1</div><h3>确认出差性质 <span class="tag">判定</span></h3><p>职工因生产经营临时到常驻地以外地区公务出差，适用「差旅报销单」。注意：<b>新员工出差、实习生报到路费及住宿费、驾驶员出车期间差旅费</b>走「员工报销单」。</p></div>
+      <div class="step"><div class="node">2</div><h3>登录财务共享系统 <span class="tag">入口</span></h3><p>在<b>财务共享系统</b>新建「差旅报销单」。差旅报销单统一在此系统发起。</p></div>
+      <div class="step"><div class="node">3</div><h3>选择出差类型 <span class="tag">填报</span></h3><p>按性质选择：一般管理运营出差 / 培训出差 / 会议出差 / 党团活动，并对应费用归集（合同履约成本_服务成本_差旅费）。</p></div>
+      <div class="step"><div class="node">4</div><h3>填写出差明细 <span class="tag">填报</span></h3><p>录入行程及城市间交通费、住宿费、伙食补助费、公杂费等明细。住宿费注意不超标准。</p></div>
+      <div class="step"><div class="node">5</div><h3>上传交通住宿凭证 <span class="tag">材料</span></h3><p>高铁/机票/酒店订单截图、派车审批、会议/培训通知等，详见下方「材料速查」中的差旅场景清单。</p></div>
+      <div class="step"><div class="node">6</div><h3>公务卡说明 <span class="tag">必办</span></h3><p>同员工报销单规则：公务卡支付上传流水截图；非公务卡支付上传《未使用公务卡说明》。</p></div>
+      <div class="step"><div class="node">7</div><h3>提交审核与打款 <span class="tag">完成</span></h3><p>提交审批流转。财务生成凭证"报销差旅费（事由）"，审核通过后由银行存款支付；专票可打开抵扣按钮计入待认证进项税额。</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="glow-divider"></div></div>
+
+<!-- MATERIALS -->
+<section id="materials" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">// STEP 02 — 材料速查</div>
+    <div class="sec-title">某项报销单 · 需要提交哪些材料</div>
+    <div class="sec-desc">选择左侧报销场景，右侧即时列出该单据所需附件及要求。支持关键词搜索，跨场景筛选材料。</div>
+  </div>
+
+  <div class="mat-layout">
+    <div class="scenario-list" id="scenarioList"></div>
+
+    <div class="mat-panel">
+      <div class="mat-top">
+        <div>
+          <h3 id="matTitle">—</h3>
+          <div class="mat-meta" id="matMeta"></div>
+        </div>
+      </div>
+      <div class="calc-box" id="calcBox" style="display:none"></div>
+      <div class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8ba0c8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="searchInput" type="text" placeholder="搜索材料名称或要求，如：公务卡 / 12306 / 派车…" oninput="renderMaterials()" />
+      </div>
+      <div class="mat-grid" id="matGrid"></div>
+      <div class="count-note" id="countNote"></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="glow-divider"></div></div>
+
+<!-- SYSTEMS -->
+<section id="systems" class="wrap">
+  <div class="sec-head">
+    <div class="sec-tag">// STEP 03 — 系统入口</div>
+    <div class="sec-title">来源系统与关键填报字段</div>
+    <div class="sec-desc">不同报销单对应不同的发起系统。下表汇总入口与填报要点，避免选错系统导致退单。</div>
+  </div>
+  <div class="sys-grid">
+    <div class="sys-card">
+      <h3>🧩 交工业务系统</h3>
+      <div class="sysname">员工报销单 · 主要入口</div>
+      <ul>
+        <li><b>适用单据：</b>员工报销单（如零星材料采购、部分差旅相关费用）</li>
+        <li><b>费用项目示例：</b>材料（商品）采购、境内差旅费/境外差旅费</li>
+        <li><b>特定字段：</b>成本用途、单据业务类型、费用承担部门、内部管理单元</li>
+        <li><b>凭证摘要：</b>自动带出（如"境内差旅费"），财务节点可手工修改</li>
+      </ul>
+    </div>
+    <div class="sys-card">
+      <h3>🔷 财务共享系统</h3>
+      <div class="sysname">差旅报销单 · 主要入口</div>
+      <ul>
+        <li><b>适用单据：</b>差旅报销单、市内交通费、设备检测费等员工报销单</li>
+        <li><b>出差类型：</b>一般管理运营 / 培训 / 会议 / 党团活动出差</li>
+        <li><b>费用项目：</b>境内差旅费/境外差旅费、市内交通费、其他试验检测标定费</li>
+        <li><b>凭证摘要：</b>"报销差旅费（事由）"，审核通过后银行存款支付</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note">⚠ 说明：文档总则明确"员工报销单适用交工业务系统"，但各费用章节亦列示财务共享系统为来源系统，实际请以所在部门现行系统为准。无论哪个系统，公务卡支付均需上传流水截图、非公务卡支付均需《未使用公务卡说明》。</div>
+</section>
+
+<footer class="wrap">
+  <div class="glow-divider"></div>
+  <p>数据来源：<b>《交工财务共享核算全景图（检测篇）》</b>（交工财务共享服务部 · 2025年12月）</p>
+  <p style="margin-top:8px;opacity:.7">本页面为报销指引辅助工具，具体以公司最新财务制度与系统规则为准。</p>
+</footer>
+
+<script>
+/* ---------- DATA (摘自文档) ---------- */
+/* 差旅报销单 / 员工报销单(差旅) 的情形化材料计算器：按实际情况勾选，自动筛出真正需要的附件 */
+const travelCalc = [
+  {key:'transport', type:'multi', title:'交通方式（可多选，据实勾选你用到的）', options:[
+    {label:'高铁/动车（报销二等座以外席别）', mat:{name:'12306平台高铁二等座票价截图', req:'高铁一等座发票时适用'}},
+    {label:'全列软席列车（报销一等软座）', mat:{name:'12306平台二等软座票价截图', req:'全列软席列车一等软座时适用'}},
+    {label:'普通列车（报销软座/软卧）', mat:{name:'12306平台硬座、硬卧截图', req:'软座、软卧时适用'}},
+    {label:'飞机（平台代订，发票无行程仓位）', mat:{name:'含行程及仓位的订单截图', req:'发票为平台代订机票无行程及仓位信息时适用'}},
+    {label:'公司派车', mat:{name:'用车派车申请审批截图（签字齐全）', req:'公司派车时适用'}},
+    {label:'当天往返、无交通发票，仅报伙食补贴+公杂费', mat:{name:'特殊情况说明', req:'当天往返且无交通费发票/用车申请单，报销伙食补贴费和公杂费时适用'}}
+  ]},
+  {key:'hotel', type:'bool', title:'是否平台代订酒店住宿？', yesMat:{name:'订单明细信息（酒店价格不能超标）', req:'发票为平台代定酒店时适用'}},
+  {key:'triptype', type:'single', title:'出差类型', options:[
+    {label:'会议出差', mat:{name:'书面会议通知 / QQ、微信通知截图', req:'出差类型为会议出差时适用'}},
+    {label:'培训出差', mat:{name:'培训通知', req:'出差类型为培训出差时适用'}},
+    {label:'一般管理运营 / 党团活动', mat:null}
+  ]},
+  {key:'driver', type:'bool', title:'是否驾驶员出车？', yesMat:{name:'驾驶员证明出车的相关附件（用车派车申请审批表、驾驶员出差登记表等）', req:'驾驶员报销时适用'}},
+  {key:'pay', type:'either', title:'支付方式', options:[
+    {label:'公务卡支付', mat:{name:'公务卡消费流水截图（含卡号末四位数）', req:'公务卡支付时适用'}},
+    {label:'非公务卡支付', mat:{name:'未使用公务卡说明', req:'非公务卡支付时适用；签字齐全；标准格式'}}
+  ]}
+];
+const scenarios = [
+  {
+    id:'travel',
+    form:'差旅报销单',
+    cat:'差旅费（非商旅）· 职工出差',
+    system:'财务共享系统',
+    audience:'职工因生产经营临时到常驻地以外地区公务出差（含会议/培训）',
+    feeItem:'出差类型：一般管理运营/培训/会议/党团活动出差',
+    calc: travelCalc
+  },
+  {
+    id:'travel_emp',
+    form:'员工报销单',
+    cat:'差旅费（非商旅）· 新员工/实习生/驾驶员',
+    system:'交工业务系统',
+    audience:'新员工出差、实习生报到路费及住宿费、驾驶员出车期间差旅费',
+    feeItem:'费用项目：境内差旅费 / 境外差旅费',
+    calc: travelCalc
+  },
+  {
+    id:'local',
+    form:'员工报销单',
+    cat:'市内交通费',
+    system:'财务共享系统',
+    audience:'员工在工作所在地市（直辖市、地级市）范围内办理公务发生的交通费用',
+    feeItem:'费用项目：市内交通费',
+    materials:[
+      {seq:1,name:'行程单',req:'交通方式为网约车时需提供；金额与单据报销金额一致'},
+      {seq:2,name:'公务卡消费流水截图（含卡号末四位数）',req:'公务卡支付时需上传；流水卡号末四位与单据收款银行账号末四位一致'},
+      {seq:3,name:'未使用公务卡说明',req:'非公务卡支付时需上传；标准格式且签字齐全'}
+    ]
+  },
+  {
+    id:'purchase',
+    form:'员工报销单',
+    cat:'材料采购费（零星小额单次采购）',
+    system:'交工业务系统',
+    audience:'采购检测耗材、试剂及未达固定资产标准的生产设备（仪器），零星小额单次采购',
+    feeItem:'费用项目：材料（商品）采购',
+    materials:[
+      {seq:1,name:'《收货单》',req:'签字齐全；货物名称、数量与发票信息一致；金额与发票、单据金额一致'},
+      {seq:2,name:'《采购申请表》',req:'审批记录签字齐全；材料明细及数量与发票一致'},
+      {seq:3,name:'公务卡消费流水截图（含卡号末四位数）',req:'公务卡支付时需上传；流水卡号末四位与单据收款银行账号末四位一致'},
+      {seq:4,name:'未使用公务卡说明',req:'非公务卡支付时需上传；标准格式且签字齐全'}
+    ]
+  },
+  {
+    id:'equip',
+    form:'员工报销单',
+    cat:'生产设备（仪器）检测费',
+    system:'财务共享系统',
+    audience:'生产设备（仪器）发生的检测、标定校准费用',
+    feeItem:'费用项目：其他试验检测、标定费',
+    materials:[
+      {seq:1,name:'《结算清单》',req:'对方盖章；供应商名称、金额与单据一致'},
+      {seq:2,name:'公务卡消费流水截图（含卡号末四位数）',req:'公务卡支付时需上传；流水卡号末四位与单据收款银行账号末四位一致'},
+      {seq:3,name:'未使用公务卡说明',req:'非公务卡支付时需上传；标准格式且签字齐全'}
+    ]
+  }
+];
+
+let currentScenario = scenarios[0].id;
+let calcState = {};
+
+function renderScenarios(){
+  const el = document.getElementById('scenarioList');
+  el.innerHTML = scenarios.map(s=>`
+    <div class="scenario ${s.id===currentScenario?'active':''}" onclick="selectScenario('${s.id}')">
+      <div class="form">${s.form==='差旅报销单'?'🛫':'🧾'} ${s.form}</div>
+      <div class="cat">${s.cat}</div>
+      <div class="mini">
+        <span class="chip sys">${s.system}</span>
+        <span class="chip">${s.calc?'按需生成':s.materials.length+' 项材料'}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selectScenario(id){
+  currentScenario = id;
+  if(scenarios.find(x=>x.id===id).calc){ document.getElementById('searchInput').value=''; }
+  renderScenarios();
+  renderMaterials();
+}
+
+function renderMaterials(){
+  const s = scenarios.find(x=>x.id===currentScenario);
+  const qEl = document.getElementById('searchInput');
+  const q = qEl.value.trim().toLowerCase();
+  document.getElementById('matTitle').textContent = s.form + ' · ' + s.cat;
+  document.getElementById('matMeta').innerHTML = `
+    <div><b>来源系统</b>${s.system}</div>
+    <div><b>适用对象</b>${s.audience}</div>
+    <div><b>费用项目</b>${s.feeItem}</div>`;
+  const calcBox = document.getElementById('calcBox');
+  const searchBox = document.querySelector('.search');
+  const grid = document.getElementById('matGrid');
+  const note = document.getElementById('countNote');
+  if(s.calc){
+    searchBox.style.display='none'; grid.style.display='none'; note.style.display='none';
+    calcBox.style.display='block';
+    renderCalc(s);
+  }else{
+    searchBox.style.display='block'; grid.style.display='block'; note.style.display='block';
+    calcBox.style.display='none';
+    let list = s.materials;
+    if(q){ list = list.filter(m=>m.name.toLowerCase().includes(q) || m.req.toLowerCase().includes(q)); }
+    if(list.length===0){
+      grid.innerHTML = `<div class="empty">未找到匹配「${q}」的材料，试试其他关键词。</div>`;
+    }else{
+      grid.innerHTML = list.map(m=>`
+        <div class="mat-item">
+          <div class="mat-seq">${m.seq}</div>
+          <div class="mat-body">
+            <div class="mat-name">${m.name}</div>
+            <div class="mat-req"><span class="cond">要求：</span>${m.req}</div>
+          </div>
+        </div>`).join('');
+    }
+    note.textContent = q ? `筛选结果：${list.length} / ${s.materials.length} 项` : `共 ${s.materials.length} 项必附材料 · 请按"要求"列条件确认是否适用`;
+  }
+}
+
+function renderCalc(s){
+  const st = calcState[s.id] || (calcState[s.id]={});
+  const box = document.getElementById('calcBox');
+  box.innerHTML = `<div class="calc-hint">↓ 按你的实际出差情况勾选，系统自动筛出你<b>真正需要</b>的附件；二选一材料只算一项。</div>` +
+    s.calc.map((q,qi)=>{
+      if(q.type==='multi'){
+        const sel = st[q.key]||[];
+        return `<div class="qblock"><div class="qtitle">${qi+1}. ${q.title}</div><div class="opts">`+
+          q.options.map((o,oi)=>`<button class="opt ${sel.includes(oi)?'on':''}" onclick="toggleCalc('${s.id}','${q.key}',${oi})">${o.label}</button>`).join('')+
+          `</div></div>`;
+      }
+      if(q.type==='bool'){
+        return `<div class="qblock"><div class="qtitle">${qi+1}. ${q.title}</div><div class="opts">`+
+          `<button class="opt ${st[q.key]==='yes'?'on':''}" onclick="setCalc('${s.id}','${q.key}','yes')">是</button>`+
+          `<button class="opt ${st[q.key]==='no'?'on':''}" onclick="setCalc('${s.id}','${q.key}','no')">否</button>`+
+          `</div></div>`;
+      }
+      if(q.type==='single' || q.type==='either'){
+        const cls = q.type==='either' ? 'qblock either' : 'qblock';
+        const tag = q.type==='either' ? ' <span class="etag">二选一</span>' : '';
+        return `<div class="${cls}"><div class="qtitle">${qi+1}. ${q.title}${tag}</div><div class="opts">`+
+          q.options.map((o,oi)=>`<button class="opt ${st[q.key]===oi?'on':''}" onclick="setCalc('${s.id}','${q.key}',${oi})">${o.label}</button>`).join('')+
+          `</div></div>`;
+      }
+      return '';
+    }).join('') + `<div class="calc-result" id="calcResult"></div>`;
+  updateCalcResult(s);
+}
+
+function toggleCalc(id,key,oi){
+  const st = calcState[id] || (calcState[id]={});
+  st[key] = st[key] || [];
+  const i = st[key].indexOf(oi);
+  if(i>=0) st[key].splice(i,1); else st[key].push(oi);
+  renderCalc(scenarios.find(x=>x.id===id));
+}
+function setCalc(id,key,val){
+  const st = calcState[id] || (calcState[id]={});
+  st[key] = val;
+  renderCalc(scenarios.find(x=>x.id===id));
+}
+function updateCalcResult(s){
+  const st = calcState[s.id] || {};
+  const res = document.getElementById('calcResult');
+  if(!res) return;
+  let list = [];
+  s.calc.forEach(q=>{
+    if(q.type==='multi'){ (st[q.key]||[]).forEach(oi=>{ if(q.options[oi] && q.options[oi].mat) list.push(q.options[oi].mat); }); }
+    else if(q.type==='bool'){ if(st[q.key]==='yes' && q.yesMat) list.push(q.yesMat); }
+    else if(q.type==='single'){ if(typeof st[q.key]==='number' && q.options[st[q.key]] && q.options[st[q.key]].mat) list.push(q.options[st[q.key]].mat); }
+    else if(q.type==='either'){ if(typeof st[q.key]==='number' && q.options[st[q.key]]) list.push(q.options[st[q.key]].mat); }
+  });
+  const payQ = s.calc.find(q=>q.type==='either');
+  const payMissing = payQ && typeof st[payQ.key] !== 'number';
+  if(list.length===0){
+    res.innerHTML = `<div class="empty">请在上方勾选你的实际情况，系统将生成专属附件清单。</div>` + (payMissing?`<div class="res-note">※ 支付方式（公务卡 / 非公务卡）为必选项，请选择其一。</div>`:'');
+  }else{
+    res.innerHTML = `<div class="res-head">📋 你的差旅报销专属附件清单（${list.length} 项）</div>` +
+      list.map((m,i)=>`<div class="mat-item"><div class="mat-seq">${i+1}</div><div class="mat-body"><div class="mat-name">${m.name}</div><div class="mat-req"><span class="cond">要求：</span>${m.req}</div></div></div>`).join('') +
+      (payMissing?`<div class="res-note">※ 支付方式（公务卡 / 非公务卡）为必选项，请选择其一后清单会自动补上对应材料。</div>`:'');
+  }
+}
+
+function switchTab(which){
+  document.getElementById('tab-emp').classList.toggle('active',which==='emp');
+  document.getElementById('tab-tra').classList.toggle('active',which==='tra');
+  document.getElementById('steps-emp').classList.toggle('active',which==='emp');
+  document.getElementById('steps-tra').classList.toggle('active',which==='tra');
+}
+
+/* stats count-up */
+function countUp(){
+  document.querySelectorAll('.stat .num').forEach(el=>{
+    const to = +el.dataset.to; let cur=0;
+    const step = Math.max(1,Math.ceil(to/30));
+    const t = setInterval(()=>{ cur+=step; if(cur>=to){cur=to;clearInterval(t);} el.textContent=cur; },28);
+  });
+}
+
+/* particle grid background */
+(function(){
+  const c = document.getElementById('bgCanvas');
+  const ctx = c.getContext('2d');
+  let w,h,pts;
+  function resize(){ w=c.width=innerWidth; h=c.height=innerHeight; init(); }
+  function init(){
+    const n = Math.min(90, Math.floor(w*h/16000));
+    pts = Array.from({length:n},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4}));
+  }
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    for(const p of pts){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>w)p.vx*=-1;
+      if(p.y<0||p.y>h)p.vy*=-1;
+      ctx.beginPath();ctx.arc(p.x,p.y,1.4,0,7);ctx.fillStyle='rgba(34,227,255,.7)';ctx.fill();
+    }
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
+        const d=Math.hypot(dx,dy);
+        if(d<130){
+          ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle=`rgba(80,140,255,${(1-d/130)*0.18})`;ctx.lineWidth=1;ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  addEventListener('resize',resize);resize();draw();
+})();
+
+renderScenarios();
+renderMaterials();
+countUp();
+</script>
+</body>
+</html>
